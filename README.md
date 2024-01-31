@@ -1,6 +1,38 @@
-![build](https://github.com/pngjs/pngjs/actions/workflows/ci.yml/badge.svg?branch=main) [![codecov](https://codecov.io/gh/pngjs/pngjs/branch/master/graph/badge.svg)](https://codecov.io/gh/pngjs/pngjs) [![npm version](https://badge.fury.io/js/pngjs.svg)](http://badge.fury.io/js/pngjs)
+# This is a fork of pngjs/pngjs
 
-# pngjs
+My fork adds `options.maxFrames` (default disabled) to allow skipping over APNG data. If set, after `maxFrames` have been read, the `parsed` event will be emitted straight away. I identify frames by the fcTL chunk.
+
+Note that the rest of the input readable stream will still be consumed unless it is destroyed.
+
+Grab an example APNG file here https://ezgif.com/images/format-demo/butterfly.png and try it with this code:
+
+```js
+const fs = require("fs")
+const meter = require("stream-meter")
+const pngjs = require("pngjs")
+
+// set up streams
+const imgStream = fs.createReadStream("butterfly.png")
+const meterStream = meter()
+const pngStream = new pngjs.PNG({maxFrames: 1})
+
+// run stream pipeline
+imgStream.pipe(meterStream).pipe(pngStream);
+
+pngStream.on("parsed", info => {
+	// parsing finished without reading the whole file
+	console.log("info:", info)
+	console.log("only read", meterStream.bytes, "bytes")
+
+	// be sure to destroy the input stream, or it will continue being read out
+	imgStream.destroy()
+	setTimeout(() => {
+		console.log("since the input stream was destroyed, still only read", meterStream.bytes, "bytes")
+	}, 1500)
+})
+```
+
+# Original readme of pngjs/pngjs
 
 Simple PNG encoder/decoder for Node.js with no dependencies.
 
